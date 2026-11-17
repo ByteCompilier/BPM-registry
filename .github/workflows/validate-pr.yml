@@ -38,6 +38,7 @@ jobs:
           fi
 
           for FILE in $FILES; do
+            # Игнорируем служебные файлы репозитория
             if [[ "$FILE" == "README.md" || "$FILE" == .github/* || "$FILE" == "LICENSE" ]]; then
               continue
             fi
@@ -77,27 +78,35 @@ jobs:
             fi
 
             # 4. Скачивание с лимитом 50 МБ и проверка HTTP 200
-            rm -rf /tmp/test_pkg.zip /tmp/unpacked
+            rm -rf /tmp/test_pkg.zip /tmp/raw_zip /tmp/unpacked
             HTTP_CODE=$(curl -sL --max-filesize 52428800 -o /tmp/test_pkg.zip -w "%{http_code}" "$URL")
             if [ "$HTTP_CODE" -ne 200 ]; then
               echo "::error::Failed to download archive (HTTP $HTTP_CODE or file > 50MB): $URL"
               exit 1
             fi
 
-            # 5. Проверка ZIP-сигнатуры и реальной распаковки как в BPM (--strip-components=1)
+            # 5. Проверка ZIP-сигнатуры и структуры архива (имитация --strip-components=1 на Windows)
             if ! file /tmp/test_pkg.zip | grep -qi "Zip archive"; then
               echo "::error::Downloaded file is not a valid ZIP archive."
               exit 1
             fi
 
-            mkdir -p /tmp/unpacked
-            if ! tar -xf /tmp/test_pkg.zip --strip-components=1 -C /tmp/unpacked; then
-              echo "::error::tar failed to extract archive with --strip-components=1."
+            mkdir -p /tmp/raw_zip /tmp/unpacked
+            if ! unzip -q /tmp/test_pkg.zip -d /tmp/raw_zip; then
+              echo "::error::unzip failed to extract archive."
               exit 1
             fi
 
+            TOP_DIRS=$(find /tmp/raw_zip -mindepth 1 -maxdepth 1 -type d)
+            if [ -z "$TOP_DIRS" ]; then
+              echo "::error::Archive must contain a top-level folder (standard GitHub ZIP structure) so --strip-components=1 works on Windows."
+              exit 1
+            fi
+
+            cp -r /tmp/raw_zip/*/* /tmp/unpacked/ 2>/dev/null || true
+
             if [ -z "$(ls -A /tmp/unpacked)" ]; then
-              echo "::error::Archive extracted empty directory! Make sure files are inside a top-level folder."
+              echo "::error::Archive extracted empty directory! Make sure your library files are inside the repository folder."
               exit 1
             fi
 
@@ -108,6 +117,6 @@ jobs:
               exit 1
             fi
 
-            rm -rf /tmp/test_pkg.zip /tmp/unpacked
+            rm -rf /tmp/test_pkg.zip /tmp/raw_zip /tmp/unpacked
             echo "SUCCESS: '$FILE' is valid, safe, and ready for BPM!"
           done
