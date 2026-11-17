@@ -1,0 +1,63 @@
+name: Validate Package PR
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate added or modified package files
+        run: |
+          # Получаем список добавленных или изменённых файлов в PR
+          FILES=$(git diff --name-only --diff-filter=AM origin/main...HEAD)
+
+          if [ -z "$FILES" ]; then
+            echo "No package files added or modified."
+            exit 0
+          fi
+
+          for FILE in $FILES; do
+            # Игнорируем служебные файлы репозитория (README.md, .github/ и т.д.)
+            if [[ "$FILE" == "README.md" || "$FILE" == .github/* || "$FILE" == "LICENSE" ]]; then
+              continue
+            fi
+
+            echo "Checking package file: '$FILE'"
+
+            # 1. Проверяем, что файл в корне и содержит только [a-zA-Z0-9_-]
+            if [[ ! "$FILE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+              echo "::error::Invalid package name '$FILE'. Only letters, digits, '-' and '_' are allowed (no extensions or slashes)."
+              exit 1
+            fi
+
+            # 2. Читаем первую строку (убираем \r на случай Windows-переносов строк)
+            URL=$(head -n 1 "$FILE" | tr -d '\r')
+
+            if [ -z "$URL" ]; then
+              echo "::error::Package file '$FILE' is empty!"
+              exit 1
+            fi
+
+            if [[ ! "$URL" =~ ^https?:// ]]; then
+              echo "::error::First line in '$FILE' must be a valid HTTP/HTTPS URL. Found: '$URL'"
+              exit 1
+            fi
+
+            # 3. Проверяем, что ссылка реально открывается и возвращает 200 OK
+            echo "Testing URL: $URL"
+            HTTP_CODE=$(curl -sL -o /dev/null -w "%{http_code}" "$URL")
+
+            if [ "$HTTP_CODE" -ne 200 ]; then
+              echo "::error::URL returned HTTP $HTTP_CODE (expected 200 OK): $URL"
+              exit 1
+            fi
+
+            echo "SUCCESS: '$FILE' passed all checks!"
+          done
