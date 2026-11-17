@@ -12,8 +12,8 @@ Anyone can submit a library to the BPM registry via a **Pull Request**. Follow t
 1. Host your library in a **public** GitHub repository.
 2. Make sure your code is placed at the **root** of the repository (BPM unpacks archives using `--strip-components=1`, which extracts the top-level repository folder directly into `libs/<package_name>`).
 3. Get a direct `.zip` archive link for your repository or release:
-   - **Branch archive:** `https://github.com<username>/<repo>/archive/refs/heads/main.zip`
-   - **Release tag archive (recommended):** `https://github.com<username>/<repo>/archive/refs/tags/v1.0.0.zip`
+   - **Branch archive:** `https://github.com/<username>/<repo>/archive/refs/heads/main.zip`
+   - **Release tag archive (recommended):** `https://github.com/<username>/<repo>/archive/refs/tags/v1.0.0.zip`
 
 ### 2. Add Your Package to the Registry
 1. **Fork** this repository (`bytecompilier/BPM-registry`).
@@ -24,7 +24,7 @@ Anyone can submit a library to the BPM registry via a **Pull Request**. Follow t
    - Forbidden characters: `.` `/` `\` `&` `|` `;` `"` `%` `<` `>` `(` `)` `^` `!`
 3. Paste the direct `.zip` URL into the **first line** of the file (plain text, no extra spaces or markdown formatting):
    ```text
-   https://github.comusername/my-library/archive/refs/tags/v1.0.0.zip
+   https://github.com/username/my-library/archive/refs/tags/v1.0.0.zip
    ```
 
 ### 3. Test & Submit
