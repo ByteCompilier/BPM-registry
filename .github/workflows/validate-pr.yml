@@ -15,7 +15,6 @@ jobs:
 
       - name: Validate added or modified package files
         run: |
-          # Получаем список добавленных или изменённых файлов в PR
           FILES=$(git diff --name-only --diff-filter=AM origin/main...HEAD)
 
           if [ -z "$FILES" ]; then
@@ -24,40 +23,77 @@ jobs:
           fi
 
           for FILE in $FILES; do
-            # Игнорируем служебные файлы репозитория (README.md, .github/ и т.д.)
             if [[ "$FILE" == "README.md" || "$FILE" == .github/* || "$FILE" == "LICENSE" ]]; then
               continue
             fi
 
-            echo "Checking package file: '$FILE'"
+            echo "=== Checking package: '$FILE' ==="
 
-            # 1. Проверяем, что файл в корне и содержит только [a-zA-Z0-9_-]
+            # 1. Валидация имени файла (строго как в C-коде BPM)
             if [[ ! "$FILE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-              echo "::error::Invalid package name '$FILE'. Only letters, digits, '-' and '_' are allowed (no extensions or slashes)."
+              echo "::error::Invalid package name '$FILE'. Only [a-zA-Z0-9_-] allowed."
               exit 1
             fi
 
-            # 2. Читаем первую строку (убираем \r на случай Windows-переносов строк)
+            # 2. Защита от перезаписи чужого пакета
+            if git ls-tree -r origin/main --name-only | grep -qx "$FILE"; then
+              ORIGINAL_AUTHOR=$(git log --diff-filter=A --format='%ae' -- "$FILE" | tail -n 1)
+              PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+              if [[ "$PR_AUTHOR" != "bytecompilier" && "$PR_AUTHOR" != "gufau9089-tech" ]]; then
+                echo "::warning::Modifying existing package '$FILE'. Manual owner review required."
+              fi
+            fi
+
+            # 3. Проверка содержимого файла (ровно 1 строка, без пробелов)
+            LINE_COUNT=$(grep -cve '^\s*$' "$FILE")
+            if [ "$LINE_COUNT" -ne 1 ]; then
+              echo "::error::File '$FILE' must contain exactly one non-empty line with the URL (found $LINE_COUNT)."
+              exit 1
+            fi
+
             URL=$(head -n 1 "$FILE" | tr -d '\r')
-
-            if [ -z "$URL" ]; then
-              echo "::error::Package file '$FILE' is empty!"
+            if [[ "$URL" =~ [[:space:]] ]]; then
+              echo "::error::URL in '$FILE' contains spaces. Please trim trailing spaces."
               exit 1
             fi
 
-            if [[ ! "$URL" =~ ^https?:// ]]; then
-              echo "::error::First line in '$FILE' must be a valid HTTP/HTTPS URL. Found: '$URL'"
+            if [[ ! "$URL" =~ ^https:// ]]; then
+              echo "::error::URL must start with https:// (HTTP is insecure). Found: '$URL'"
               exit 1
             fi
 
-            # 3. Проверяем, что ссылка реально открывается и возвращает 200 OK
-            echo "Testing URL: $URL"
-            HTTP_CODE=$(curl -sL -o /dev/null -w "%{http_code}" "$URL")
-
+            # 4. Скачивание с лимитом 50 МБ и проверка HTTP 200
+            rm -rf /tmp/test_pkg.zip /tmp/unpacked
+            HTTP_CODE=$(curl -sL --max-filesize 52428800 -o /tmp/test_pkg.zip -w "%{http_code}" "$URL")
             if [ "$HTTP_CODE" -ne 200 ]; then
-              echo "::error::URL returned HTTP $HTTP_CODE (expected 200 OK): $URL"
+              echo "::error::Failed to download archive (HTTP $HTTP_CODE or file > 50MB): $URL"
               exit 1
             fi
 
-            echo "SUCCESS: '$FILE' passed all checks!"
+            # 5. Проверка ZIP-сигнатуры и реальной распаковки как в BPM (--strip-components=1)
+            if ! file /tmp/test_pkg.zip | grep -qi "Zip archive"; then
+              echo "::error::Downloaded file is not a valid ZIP archive."
+              exit 1
+            fi
+
+            mkdir -p /tmp/unpacked
+            if ! tar -xf /tmp/test_pkg.zip --strip-components=1 -C /tmp/unpacked; then
+              echo "::error::tar failed to extract archive with --strip-components=1."
+              exit 1
+            fi
+
+            if [ -z "$(ls -A /tmp/unpacked)" ]; then
+              echo "::error::Archive extracted empty directory! Make sure files are inside a top-level folder (standard GitHub ZIP structure)."
+              exit 1
+            fi
+
+            # 6. Проверка на запрещённые исполняемые файлы внутри пакета
+            DANGEROUS=$(find /tmp/unpacked -type f \( -iname "*.exe" -o -iname "*.dll" -o -iname "*.bat" -o -iname "*.ps1" -o -iname "*.vbs" \))
+            if [ -n "$DANGEROUS" ]; then
+              echo "::error::Executable binaries/scripts are not allowed in packages: $DANGEROUS"
+              exit 1
+            fi
+
+            rm -rf /tmp/test_pkg.zip /tmp/unpacked
+            echo "SUCCESS: '$FILE' is valid, safe, and ready for BPM!"
           done
