@@ -13,6 +13,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check for deleted files
+        run: |
+          DELETED_FILES=$(git diff --name-only --diff-filter=D origin/main...HEAD)
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+
+          if [ -n "$DELETED_FILES" ]; then
+            for DEL_FILE in $DELETED_FILES; do
+              if [[ "$PR_AUTHOR" != "bytecompilier" && "$PR_AUTHOR" != "gufau9089-tech" ]]; then
+                echo "::warning::User '$PR_AUTHOR' is attempting to DELETE file '$DEL_FILE'. Please verify ownership before merging!"
+              else
+                echo "Owner deleted file: '$DEL_FILE'"
+              fi
+            done
+          fi
+
       - name: Validate added or modified package files
         run: |
           FILES=$(git diff --name-only --diff-filter=AM origin/main...HEAD)
@@ -35,12 +50,11 @@ jobs:
               exit 1
             fi
 
-            # 2. Защита от перезаписи чужого пакета
+            # 2. Предупреждение при перезаписи существующего пакета
             if git ls-tree -r origin/main --name-only | grep -qx "$FILE"; then
-              ORIGINAL_AUTHOR=$(git log --diff-filter=A --format='%ae' -- "$FILE" | tail -n 1)
               PR_AUTHOR="${{ github.event.pull_request.user.login }}"
               if [[ "$PR_AUTHOR" != "bytecompilier" && "$PR_AUTHOR" != "gufau9089-tech" ]]; then
-                echo "::warning::Modifying existing package '$FILE'. Manual owner review required."
+                echo "::warning::User '$PR_AUTHOR' is modifying existing package '$FILE'. Please verify ownership before merging!"
               fi
             fi
 
@@ -83,7 +97,7 @@ jobs:
             fi
 
             if [ -z "$(ls -A /tmp/unpacked)" ]; then
-              echo "::error::Archive extracted empty directory! Make sure files are inside a top-level folder (standard GitHub ZIP structure)."
+              echo "::error::Archive extracted empty directory! Make sure files are inside a top-level folder."
               exit 1
             fi
 
