@@ -1,0 +1,71 @@
+name: Update Package Catalog in README
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  update-catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate package table
+        run: |
+          python3 - << 'EOF'
+          import os
+
+          ignore = {'README.md', 'LICENSE', '.gitignore'}
+          rows = []
+
+          for name in sorted(os.listdir('.')):
+              if name.startswith('.') or name in ignore or not os.path.isfile(name):
+                  continue
+
+              data = {}
+              with open(name, 'r', encoding='utf-8', errors='ignore') as f:
+                  for line in f:
+                      if '=' in line:
+                          k, v = line.strip().split('=', 1)
+                          data[k.strip()] = v.strip()
+
+              if 'version' in data and 'author' in data:
+                  ver = data.get('version', '-')
+                  author = data.get('author', '-')
+                  desc = data.get('description', '').replace('|', '\\|')
+                  rows.append(f"| `{name}` | `{ver}` | [@{author}](https://github.com{author}) | {desc} |")
+
+          if rows:
+              table = "| Package | Version | Author | Description |\n| :--- | :--- | :--- | :--- |\n" + "\n".join(rows)
+          else:
+              table = "_No packages published yet._"
+
+          with open('README.md', 'r', encoding='utf-8') as f:
+              readme = f.read()
+
+          start_tag = "<!-- PACKAGES_START -->"
+          end_tag = "<!-- PACKAGES_END -->"
+
+          if start_tag in readme and end_tag in readme:
+              before = readme.split(start_tag)[0]
+              after = readme.split(end_tag)[1]
+              new_readme = f"{before}{start_tag}\n{table}\n{end_tag}{after}"
+
+              if new_readme != readme:
+                  with open('README.md', 'w', encoding='utf-8') as f:
+                      f.write(new_readme)
+          EOF
+
+      - name: Commit updated README
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@://github.com"
+          git add README.md
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: update package catalog"
+            git push
+          fi
