@@ -50,5 +50,9 @@ description=Basic addition helpers for ByteC
 ## Available Packages
 
 <!-- PACKAGES_START -->
+| Package | Version | Author | Description |
+| :--- | :--- | :--- | :--- |
+| `add` | `1.0.0` | [@ByteCompilier](https://github.comByteCompilier) |  |
+| `std` | `1.0.0` | [@ByteCompilier](https://github.comByteCompilier) |  |
 <!-- PACKAGES_END -->
 
