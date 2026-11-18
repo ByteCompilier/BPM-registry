@@ -14,15 +14,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-           token: ${{ secrets.ADMIN_TOKEN }}
+          token: ${{ secrets.ADMIN_TOKEN }}
 
-      - name: Generate package table
+      - name: Generate categorized package tables
         run: |
           python3 - << 'EOF'
           import os
 
           ignore = {'README.md', 'LICENSE', '.gitignore'}
-          rows = []
+          official_authors = {'bytecompilier', 'gufau9089-tech'}
+
+          official_rows = []
+          community_rows = []
 
           for name in sorted(os.listdir('.')):
               if name.startswith('.') or name in ignore or not os.path.isfile(name):
@@ -39,27 +42,37 @@ jobs:
                   ver = data.get('version', '-')
                   author = data.get('author', '-')
                   desc = data.get('description', '').replace('|', '\\|')
-                  rows.append(f"| `{name}` | `{ver}` | [@{author}](https://github.com{author}) | {desc} |")
 
-          if rows:
-              table = "| Package | Version | Author | Description |\n| :--- | :--- | :--- | :--- |\n" + "\n".join(rows)
-          else:
-              table = "_No packages published yet._"
+                  if author.lower() in official_authors:
+                      official_rows.append(f"| `{name}` | `{ver}` | 🛡️ Official | {desc} |")
+                  else:
+                      community_rows.append(f"| `{name}` | `{ver}` | [@{author}](https://github.com{author}) | {desc} |")
+
+          def build_table(rows, empty_msg):
+              if not rows:
+                  return empty_msg
+              header = "| Package | Version | Author | Description |\n| :--- | :--- | :--- | :--- |\n"
+              return header + "\n".join(rows)
+
+          official_table = build_table(official_rows, "_No official packages yet._")
+          community_table = build_table(community_rows, "_No community packages published yet. Be the first to open a PR!_")
 
           with open('README.md', 'r', encoding='utf-8') as f:
               readme = f.read()
 
-          start_tag = "<!-- PACKAGES_START -->"
-          end_tag = "<!-- PACKAGES_END -->"
+          def replace_block(text, start_tag, end_tag, content):
+              if start_tag in text and end_tag in text:
+                  before = text.split(start_tag)[0]
+                  after = text.split(end_tag)[1]
+                  return f"{before}{start_tag}\n{content}\n{end_tag}{after}"
+              return text
 
-          if start_tag in readme and end_tag in readme:
-              before = readme.split(start_tag)[0]
-              after = readme.split(end_tag)[1]
-              new_readme = f"{before}{start_tag}\n{table}\n{end_tag}{after}"
+          new_readme = replace_block(readme, "<!-- OFFICIAL_START -->", "<!-- OFFICIAL_END -->", official_table)
+          new_readme = replace_block(new_readme, "<!-- COMMUNITY_START -->", "<!-- COMMUNITY_END -->", community_table)
 
-              if new_readme != readme:
-                  with open('README.md', 'w', encoding='utf-8') as f:
-                      f.write(new_readme)
+          if new_readme != readme:
+              with open('README.md', 'w', encoding='utf-8') as f:
+                  f.write(new_readme)
           EOF
 
       - name: Commit updated README
@@ -68,6 +81,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@://github.com"
           git add README.md
           if ! git diff --cached --quiet; then
-            git commit -m "docs: update package catalog"
+            git commit -m "docs: update categorized package catalog"
             git push
           fi
