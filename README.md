@@ -47,15 +47,6 @@ description=Basic addition helpers for ByteC
 - Archives must contain source code only — executable binaries and scripts (`.exe`, `.dll`, `.bat`, `.ps1`, `.vbs`) are strictly prohibited.
 
 ---
-## Available Packages
-
-<!-- PACKAGES_START -->
-| Package | Version | Author | Description |
-| :--- | :--- | :--- | :--- |
-| `add` | `1.0.0` | [@ByteCompilier](https://github.comByteCompilier) |  |
-| `std` | `1.0.0` | [@ByteCompilier](https://github.comByteCompilier) |  |
-<!-- PACKAGES_END -->
----
 ## 🛡️ Official Core Libraries
 
 <!-- OFFICIAL_START -->
