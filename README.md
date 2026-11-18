@@ -1,55 +1,47 @@
-# BPM Registry
+# BPM-registry 📦
 
-Official package registry for the **ByteC Package Manager (BPM)**.
+Official community package registry for **ByteC** and **BPM (ByteC Package Manager)**.
 
----
+## 🚀 Installing Packages
 
-## How to Publish Your Package
+Use the `bpm` CLI tool in your project directory:
 
-Anyone can submit a library to the BPM registry via a **Pull Request**. Follow the steps below to publish your package.
-
-### 1. Prepare Your Library Repository
-1. Host your library in a **public** GitHub repository.
-2. Make sure your code is placed at the **root** of the repository (BPM unpacks archives using `--strip-components=1`, which extracts the top-level repository folder directly into `libs/<package_name>`).
-3. Get a direct `.zip` archive link for your repository or release:
-   - **Branch archive:** `https://github.com/<username>/<repo>/archive/refs/heads/main.zip`
-   - **Release tag archive (recommended):** `https://github.com/<username>/<repo>/archive/refs/tags/v1.0.0.zip`
-
-### 2. Add Your Package to the Registry
-1. **Fork** this repository (`bytecompilier/BPM-registry`).
-2. Create a new file in the root directory of your fork.
-   - **File name rules:** The file name is your **package name**.
-   - **No file extension** (do **not** add `.txt`, `.json`, etc.).
-   - Allowed characters: letters (`a-z`, `A-Z`), numbers (`0-9`), hyphens (`-`), and underscores (`_`).
-   - Forbidden characters: `.` `/` `\` `&` `|` `;` `"` `%` `<` `>` `(` `)` `^` `!`
-3. Paste the direct `.zip` URL into the **first line** of the file (plain text, no extra spaces or markdown formatting):
-   ```text
-   https://github.com/username/my-library/archive/refs/tags/v1.0.0.zip
-   ```
-
-### 3. Test & Submit
-1. Test your package locally before submitting:
-   ```cmd
-   bpm install <your-package-name>
-   ```
-2. Open a **Pull Request** to the `main` branch of `bytecompilier/BPM-registry`.
-3. Once reviewed and merged, your package will be immediately available to all BPM users!
-
----
-
-## Usage
-
-Install a package:
 ```cmd
 bpm install <package-name>
 ```
 
-Remove an installed package:
+You can also install or remove multiple packages at once:
 ```cmd
-bpm remove <package-name>
+bpm install pkg1 pkg2
+bpm remove pkg1 pkg2 -y
 ```
 
-Remove without confirmation prompt:
-```cmd
-bpm remove <package-name> -y
+## 📤 How to Publish Your Package
+
+1. **Create a public repository** on GitHub containing your `.bytec` library files in the root folder.
+2. **Fork this repository** (`BPM-registry`).
+3. **Create a new file** in the root directory named `<package-name>` (no file extension; allowed characters: `a-z`, `A-Z`, `0-9`, `-`, `_`).
+4. **Add the package metadata** using the exact `key=value` format below:
+
+```ini
+url=https://github.com<your-username>/<your-repo>/archive/refs/heads/main.zip
+version=1.0.0
+author=<your-github-username>
+description=Short description of what your ByteC library does
 ```
+
+### Example (`add`)
+```ini
+url=https://github.combytecompilier/add/archive/refs/heads/main.zip
+version=1.0.0
+author=bytecompilier
+description=Basic addition helpers for ByteC
+```
+
+5. **Open a Pull Request** to the `main` branch. Our automated GitHub Actions bot will verify your metadata, check archive structure, and scan for safety before manual review.
+
+## ⚠️ Package Rules
+- Package names must match `^[a-zA-Z0-9_-]+$` (no `.txt` or `.bytec` extensions).
+- All 4 metadata keys (`url`, `version`, `author`, `description`) are required and must be non-empty.
+- `url` must use `https://` and point to a valid `.zip` archive under 50 MB.
+- Archives must contain source code only — executable binaries and scripts (`.exe`, `.dll`, `.bat`, `.ps1`, `.vbs`) are strictly prohibited.
