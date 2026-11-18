@@ -55,4 +55,14 @@ description=Basic addition helpers for ByteC
 | `add` | `1.0.0` | [@ByteCompilier](https://github.comByteCompilier) |  |
 | `std` | `1.0.0` | [@ByteCompilier](https://github.comByteCompilier) |  |
 <!-- PACKAGES_END -->
+---
+## 🛡️ Official Core Libraries
+
+<!-- OFFICIAL_START -->
+<!-- OFFICIAL_END -->
+
+## 🌍 Community Packages
+
+<!-- COMMUNITY_START -->
+<!-- COMMUNITY_END -->
 
