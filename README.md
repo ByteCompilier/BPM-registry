@@ -45,3 +45,10 @@ description=Basic addition helpers for ByteC
 - All 4 metadata keys (`url`, `version`, `author`, `description`) are required and must be non-empty.
 - `url` must use `https://` and point to a valid `.zip` archive under 50 MB.
 - Archives must contain source code only — executable binaries and scripts (`.exe`, `.dll`, `.bat`, `.ps1`, `.vbs`) are strictly prohibited.
+
+---
+## Available Packages
+
+<!-- PACKAGES_START -->
+<!-- PACKAGES_END -->
+
