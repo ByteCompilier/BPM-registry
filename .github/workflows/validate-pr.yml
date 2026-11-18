@@ -32,6 +32,7 @@ jobs:
       - name: Validate added or modified package files
         run: |
           FILES=$(git diff --name-only --diff-filter=AM origin/main...HEAD)
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
 
           if [ -z "$FILES" ]; then
             echo "No package files added or modified."
@@ -54,7 +55,6 @@ jobs:
 
             # 2. Жесткий запрет на перезапись существующего пакета посторонними пользователями
             if git ls-tree -r origin/main --name-only | grep -qx "$FILE"; then
-              PR_AUTHOR="${{ github.event.pull_request.user.login }}"
               if [[ "$PR_AUTHOR" != "bytecompilier" && "$PR_AUTHOR" != "gufau9089-tech" ]]; then
                 echo "::error::User '$PR_AUTHOR' is NOT allowed to modify existing package '$FILE'!"
                 exit 1
@@ -84,8 +84,27 @@ jobs:
               exit 1
             fi
 
-            if [[ ! "$URL" =~ ^https:// ]]; then
-              echo "::error::URL must start with https:// (HTTP is insecure). Found: '$URL'"
+            if [[ ! "$URL" =~ ^https://github\.com/ ]]; then
+              echo "::error::URL must start with https://github.com (Found: '$URL')"
+              exit 1
+            fi
+
+            # УСИЛЕНИЕ 1: Запрет изменяемых веток (/refs/heads/) — только теги или релизы
+            if [[ "$URL" == *"/refs/heads/"* ]] || [[ "$URL" != *"/refs/tags/"* && "$URL" != *"/releases/download/"* ]]; then
+              echo "::error::Mutable branch URLs are forbidden! Use an immutable GitHub Tag (/refs/tags/...) or Release (/releases/download/...) URL."
+              exit 1
+            fi
+
+            # УСИЛЕНИЕ 2: Проверка авторства и принадлежности репозитория
+            if [[ "$PR_AUTHOR" != "bytecompilier" && "$PR_AUTHOR" != "gufau9089-tech" ]]; then
+              if [[ "${AUTHOR,,}" != "${PR_AUTHOR,,}" ]]; then
+                echo "::error::Field 'author=$AUTHOR' must match your GitHub username '$PR_AUTHOR'!"
+                exit 1
+              fi
+            fi
+
+            if [[ "${URL,,}" != "https://github.com${AUTHOR,,}/"* ]]; then
+              echo "::error::Repository URL '$URL' must belong to author '$AUTHOR' (https://github.com$AUTHOR/...)."
               exit 1
             fi
 
@@ -122,13 +141,13 @@ jobs:
               exit 1
             fi
 
-            # 6. Проверка на запрещённые исполняемые файлы внутри пакета
-            DANGEROUS=$(find /tmp/unpacked -type f \( -iname "*.exe" -o -iname "*.dll" -o -iname "*.bat" -o -iname "*.ps1" -o -iname "*.vbs" \))
-            if [ -n "$DANGEROUS" ]; then
-              echo "::error::Executable binaries/scripts are not allowed in packages: $DANGEROUS"
+            # УСИЛЕНИЕ 3: Строгий белый список расширений внутри архива
+            BAD_FILES=$(find /tmp/unpacked -type f ! \( -iname "*.bytec" -o -iname "*.md" -o -iname "*.txt" -o -iname "LICENSE*" \))
+            if [ -n "$BAD_FILES" ]; then
+              echo "::error::Forbidden file types found! Only .bytec, .md, .txt, and LICENSE files are allowed. Found: $BAD_FILES"
               exit 1
             fi
 
             rm -rf /tmp/test_pkg.zip /tmp/raw_zip /tmp/unpacked
-            echo "SUCCESS: '$FILE' (v$VERSION by $AUTHOR) passed all checks!"
+            echo "SUCCESS: '$FILE' (v$VERSION by $AUTHOR) passed all security checks!"
           done
