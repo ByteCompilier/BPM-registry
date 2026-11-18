@@ -59,10 +59,15 @@ description=Basic addition helpers for ByteC
 ## 🛡️ Official Core Libraries
 
 <!-- OFFICIAL_START -->
+| Package | Version | Author | Description |
+| :--- | :--- | :--- | :--- |
+| `add` | `1.0.0` | 🛡️ Official |  |
+| `std` | `1.0.0` | 🛡️ Official |  |
 <!-- OFFICIAL_END -->
 
 ## 🌍 Community Packages
 
 <!-- COMMUNITY_START -->
+_No community packages published yet. Be the first to open a PR!_
 <!-- COMMUNITY_END -->
 
