@@ -85,7 +85,7 @@ jobs:
                   cb = tag("div", 'class="cmd-box"', tag("code", "", f"bpm install {html.escape(name)}") + tag("button", f"class=copy-btn onclick=\"cp(this,'bpm install {html.escape(name)}')\"", "Copy"))
                   card = tag("div", f'class="card" data-name="{html.escape(name.lower())}" data-cat="{cat}" data-s="{html.escape((name+ver+author+desc).lower())}"', tag("div", 'class="card-head"', hl + hr) + tag("p", "", html.escape(desc) or "No description.") + cb)
                   (off_cards if is_off else com_cards).append(card)
-                  cards = off_cards + com_cards
+          cards = off_cards + com_cards
           upd = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
           def mk_tbl(r, emp):
