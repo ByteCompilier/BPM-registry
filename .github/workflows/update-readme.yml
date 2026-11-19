@@ -45,8 +45,17 @@ jobs:
                   ver = data.get('version', '-')
                   author = data.get('author', '-')
                   desc = data.get('description', '')
+                  url = data.get('url', '')
                   safe_desc = desc.replace('|', '\\|')
                   is_official = author.lower() in official_authors
+
+                  repo_url = url
+                  for marker in ('/archive/', '/releases/'):
+                      if marker in url:
+                          repo_url = url.split(marker)[0]
+                          break
+
+                  source_link = f'<a class="src-link" href="{html.escape(repo_url)}" target="_blank" rel="noopener">Source ↗</a>' if repo_url.startswith('https://') else ''
 
                   if is_official:
                       official_rows.append(f"| `{name}` | `{ver}` | 🛡️ Official | {safe_desc} |")
@@ -57,14 +66,22 @@ jobs:
                       badge = f'<span class="badge">@{html.escape(author)}</span>'
                       cat = 'community'
 
+                  search_blob = f"{name} {ver} v{ver} {author} {desc}".lower()
+
                   card_html = f'''
-                  <div class="card" data-category="{cat}" data-search="{html.escape(name.lower())} {html.escape(desc.lower())} {html.escape(author.lower())}">
+                  <div class="card" data-name="{html.escape(name.lower())}" data-category="{cat}" data-search="{html.escape(search_blob)}">
                     <div class="card-head">
                       <h3>{html.escape(name)} <span class="ver">v{html.escape(ver)}</span></h3>
-                      {badge}
+                      <div class="meta-right">
+                        {source_link}
+                        {badge}
+                      </div>
                     </div>
                     <p>{html.escape(desc) or "No description provided."}</p>
-                    <code>bpm install {html.escape(name)}</code>
+                    <div class="cmd-box">
+                      <code>bpm install {html.escape(name)}</code>
+                      <button class="copy-btn" onclick="copyCmd(this, 'bpm install {html.escape(name)}')">Copy</button>
+                    </div>
                   </div>'''
 
                   if is_official:
@@ -72,7 +89,6 @@ jobs:
                   else:
                       community_cards.append(card_html)
 
-          # Сначала идут официальные пакеты, затем пакеты сообщества
           web_cards = official_cards + community_cards
 
           def build_table(rows, empty_msg):
@@ -104,7 +120,6 @@ jobs:
           if new_readme != readme:
               with open('README.md', 'w', encoding='utf-8') as f:
                   f.write(new_readme)
-
           html_page = f'''<!DOCTYPE html>
           <html lang="en">
           <head>
@@ -117,34 +132,69 @@ jobs:
               .sub {{ color: #8b949e; margin-bottom: 20px; }}
               input {{ width: 100%; padding: 12px; font-size: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #fff; margin-bottom: 16px; box-sizing: border-box; }}
               input:focus {{ outline: none; border-color: #58a6ff; }}
-              .tabs {{ display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }}
-              .tab {{ background: #161b22; border: 1px solid #30363d; color: #8b949e; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.15s; }}
-              .tab:hover {{ border-color: #8b949e; color: #c9d1d9; }}
+              .toolbar {{ display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }}
+              .tabs {{ display: flex; gap: 10px; flex-wrap: wrap; }}
+              .tab, .gear-btn {{ background: #161b22; border: 1px solid #30363d; color: #8b949e; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.15s; }}
+              .tab:hover, .gear-btn:hover {{ border-color: #8b949e; color: #c9d1d9; }}
               .tab.active {{ background: #1f6feb33; border-color: #58a6ff; color: #58a6ff; }}
+              .sort-wrap {{ position: relative; }}
+              .gear-btn {{ padding: 8px 12px; font-size: 15px; }}
+              .sort-menu {{ display: none; position: absolute; right: 0; top: 42px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; min-width: 190px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); z-index: 10; overflow: hidden; }}
+              .sort-menu.open {{ display: block; }}
+              .sort-item {{ display: block; width: 100%; text-align: left; background: none; border: none; color: #c9d1d9; padding: 10px 14px; font-size: 14px; cursor: pointer; }}
+              .sort-item:hover {{ background: #21262d; }}
+              .sort-item.active {{ color: #58a6ff; font-weight: 600; }}
               .card {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 14px; }}
-              .card-head {{ display: flex; justify-content: space-between; align-items: center; }}
+              .card-head {{ display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }}
+              .meta-right {{ display: flex; align-items: center; gap: 10px; }}
               h3 {{ margin: 0; color: #f0f6fc; }}
               .ver {{ font-size: 13px; color: #8b949e; font-weight: normal; margin-left: 6px; }}
+              .src-link {{ font-size: 13px; color: #58a6ff; text-decoration: none; }}
+              .src-link:hover {{ text-decoration: underline; }}
               .badge {{ font-size: 12px; padding: 3px 8px; border-radius: 12px; background: #21262d; color: #8b949e; }}
               .badge.official {{ background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb66; }}
               p {{ color: #8b949e; margin: 10px 0; }}
-              code {{ display: block; background: #0d1117; padding: 8px 12px; border-radius: 6px; color: #7ee787; font-size: 14px; }}
+              .cmd-box {{ display: flex; justify-content: space-between; align-items: center; background: #0d1117; padding: 6px 8px 6px 12px; border-radius: 6px; border: 1px solid #21262d; }}
+              code {{ color: #7ee787; font-size: 14px; overflow-x: auto; }}
+              .copy-btn {{ background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: 0.15s; flex-shrink: 0; }}
+              .copy-btn:hover {{ background: #30363d; color: #fff; }}
+              .copy-btn.copied {{ background: #23863633; border-color: #2ea043; color: #7ee787; }}
               .empty {{ text-align: center; padding: 40px 20px; color: #8b949e; background: #161b22; border: 1px dashed #30363d; border-radius: 8px; display: none; }}
             </style>
           </head>
           <body>
             <h1>BPM Registry</h1>
             <div class="sub">Official Package Registry for ByteC</div>
-            <input type="text" id="q" placeholder="Search packages by name, description, or author..." oninput="filter()">
-            <div class="tabs">
-              <button class="tab active" onclick="setCategory('all', this)">All ({len(web_cards)})</button>
-              <button class="tab" onclick="setCategory('official', this)">🛡️ Official ({len(official_cards)})</button>
-              <button class="tab" onclick="setCategory('community', this)">🌍 Community ({len(community_cards)})</button>
+            <input type="text" id="q" placeholder="Search by name, version (e.g. 1.0.0), author, or description..." oninput="filter()">
+            <div class="toolbar">
+              <div class="tabs">
+                <button class="tab active" onclick="setCategory('all', this)">All ({len(web_cards)})</button>
+                <button class="tab" onclick="setCategory('official', this)">🛡️ Official ({len(official_cards)})</button>
+                <button class="tab" onclick="setCategory('community', this)">🌍 Community ({len(community_cards)})</button>
+              </div>
+              <div class="sort-wrap">
+                <button class="gear-btn" title="Sort packages" onclick="toggleSortMenu(event)">⚙️</button>
+                <div class="sort-menu" id="sortMenu">
+                  <button class="sort-item active" onclick="setSort('default', this)">Default (Official first)</button>
+                  <button class="sort-item" onclick="setSort('az', this)">Name: A → Z</button>
+                  <button class="sort-item" onclick="setSort('za', this)">Name: Z → A</button>
+                </div>
+              </div>
             </div>
             <div id="list">{"".join(web_cards)}</div>
-            <div id="empty" class="empty">No packages found matching your filter.</div>
+            <div id="empty" class="empty">No packages found matching your query.</div>
             <script>
               let currentCat = 'all';
+              let currentSort = 'default';
+
+              function toggleSortMenu(e) {{
+                e.stopPropagation();
+                document.getElementById('sortMenu').classList.toggle('open');
+              }}
+
+              document.addEventListener('click', () => {{
+                document.getElementById('sortMenu').classList.remove('open');
+              }});
 
               function setCategory(cat, btn) {{
                 currentCat = cat;
@@ -153,8 +203,27 @@ jobs:
                 filter();
               }}
 
+              function setSort(mode, btn) {{
+                currentSort = mode;
+                document.querySelectorAll('.sort-item').forEach(i => i.classList.remove('active'));
+                btn.classList.add('active');
+
+                const list = document.getElementById('list');
+                const cards = Array.from(list.querySelectorAll('.card'));
+
+                cards.sort((a, b) => {{
+                  if (mode === 'az') return a.dataset.name.localeCompare(b.dataset.name);
+                  if (mode === 'za') return b.dataset.name.localeCompare(a.dataset.name);
+                  const catRank = c => c.dataset.category === 'official' ? 0 : 1;
+                  return catRank(a) - catRank(b) || a.dataset.name.localeCompare(b.dataset.name);
+                }});
+
+                cards.forEach(c => list.appendChild(c));
+                filter();
+              }}
+
               function filter() {{
-                const q = document.getElementById('q').value.toLowerCase();
+                const q = document.getElementById('q').value.toLowerCase().trim();
                 let visibleCount = 0;
 
                 document.querySelectorAll('.card').forEach(c => {{
@@ -169,6 +238,18 @@ jobs:
                 }});
 
                 document.getElementById('empty').style.display = visibleCount === 0 ? 'block' : 'none';
+              }}
+
+              function copyCmd(btn, text) {{
+                navigator.clipboard.writeText(text).then(() => {{
+                  const orig = btn.textContent;
+                  btn.textContent = 'Copied!';
+                  btn.classList.add('copied');
+                  setTimeout(() => {{
+                    btn.textContent = orig;
+                    btn.classList.remove('copied');
+                  }}, 1200);
+                }});
               }}
             </script>
           </body>
