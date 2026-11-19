@@ -6,6 +6,7 @@ Official package registry and web catalog for the **ByteC Package Manager (`bpm`
 
 ---
 [![Validate Package PR](https://github.com/ByteCompilier/BPM-registry/actions/workflows/validate-pr.yml/badge.svg)](https://github.com/ByteCompilier/BPM-registry/actions/workflows/validate-pr.yml)
+[![Package Security Patrol](https://github.com/ByteCompilier/BPM-registry/actions/workflows/security-monitor.yml/badge.svg)](https://github.com/ByteCompilier/BPM-registry/actions/workflows/security-monitor.yml)
 
 ## 🛡️ Official Core Libraries
 
