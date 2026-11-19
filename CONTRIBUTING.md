@@ -21,7 +21,7 @@ Before submitting a package to `BPM-registry`, make sure your library repository
 
 ## 📝 Step 2: Create Your Package Metadata File
 
-1. **Fork** the `BPM-registry` repository (or use the **[+ Publish Package](https://github.io)** generator on our web portal).
+1. **Fork** the `BPM-registry` repository (or use the **[+ Publish Package](https://bytecompilier.github.io/BPM-registry/)** generator on our web portal).
 2. Create a new file in the **root directory** named after your package.
    * **Naming rules:** Only letters (`a-z`, `A-Z`), digits (`0-9`), `-`, and `_`. **Do not add any file extension** (e.g., `json-parser`, not `json-parser.txt`).
 3. Add the four required fields in `key=value` format:
