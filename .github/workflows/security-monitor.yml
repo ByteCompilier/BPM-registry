@@ -23,7 +23,7 @@ jobs:
           python3 - << 'EOF'
           import os, subprocess, urllib.request, urllib.error, zipfile, shutil
 
-          ignore = {'README.md', 'LICENSE', '.gitignore', 'index.html'}
+          ignore = {'README.md', 'LICENSE', '.gitignore', 'index.html', '.editorconfig', 'CONTRIBUTING.md', 'SECURITY.md'}
           allowed_ext = ('.bytec', '.md', '.txt')
           errors = []
 
