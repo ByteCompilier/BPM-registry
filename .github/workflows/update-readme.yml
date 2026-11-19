@@ -116,7 +116,7 @@ jobs:
           ]
           js = NL.join(js_lines)
 
-          compiler_url = GH_BASE + "ByteCompilier/ByteC"
+          compiler_url = GH_BASE + "/ByteCompilier/ByteC"
           top = tag("div", 'class="top-bar"', tag("div", "", tag("h1", "", "BPM Registry") + tag("div", 'class="sub"', "Official Package Registry for ByteC")) + tag("div", 'class="top-actions"', tag("a", f'class="nav-btn" href="{compiler_url}" target="_blank"', "ByteC ↗") + tag("button", 'class="nav-btn primary" onclick="openPub()"', "+ Publish Package")))
           st = tag("div", 'class="status-bar"', tag("div", "", tag("span", 'class="status-online"', "● Registry Online & Verified") + " · Patrol Active") + tag("div", "", f"Packages: {len(cards)} · Updated: {upd}"))
           tb = tag("div", 'class="toolbar"', tag("div", 'class="tabs"', tag("button", 'class="tab active" onclick="sCat(\'all\',this)"', f"All ({len(cards)})") + tag("button", 'class="tab" onclick="sCat(\'official\',this)"', f"🛡️ Official ({len(off_cards)})") + tag("button", 'class="tab" onclick="sCat(\'community\',this)"', f"🌍 Community ({len(com_cards)})")) + tag("div", 'class="sort-wrap"', tag("button", 'class="gear-btn" onclick="tSort(event)"', "⚙️") + tag("div", 'class="sort-menu" id="sm"', tag("button", 'class="sort-item" onclick="sSort(\'def\')"', "Default") + tag("button", 'class="sort-item" onclick="sSort(\'az\')"', "Name: A → Z") + tag("button", 'class="sort-item" onclick="sSort(\'za\')"', "Name: Z → A"))))
