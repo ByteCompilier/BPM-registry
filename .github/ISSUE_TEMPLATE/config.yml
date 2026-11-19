@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: 🌐 Browse Available Packages
-    url: https://github.io
+    url: https://bytecompilier.github.io/BPM-registry/
     about: Search all verified ByteC libraries on the web portal
   - name: 🔒 Report a Private Security Vulnerability
-    url: https://github.com
+    url: https://github.com/ByteCompilier/BPM-registry/security/advisories/new
     about: Privately disclose a critical security issue to maintainers
