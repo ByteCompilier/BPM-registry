@@ -1,153 +1,189 @@
-name: Validate Package PR
+name: Update Package Catalog
 
 on:
-  pull_request:
+  push:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
-  check-package:
+  update-catalog:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          token: ${{ secrets.ADMIN_TOKEN }}
 
-      - name: Check for deleted files
+      - name: Generate README and Web Catalog
         run: |
-          DELETED_FILES=$(git diff --name-only --diff-filter=D origin/main...HEAD)
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          python3 - << 'EOF'
+          import os, html
 
-          if [ -n "$DELETED_FILES" ]; then
-            for DEL_FILE in $DELETED_FILES; do
-              if [[ "$PR_AUTHOR" != "bytecompilier" && "$PR_AUTHOR" != "gufau9089-tech" ]]; then
-                echo "::error::User '$PR_AUTHOR' is NOT allowed to DELETE file '$DEL_FILE'!"
-                exit 1
-              else
-                echo "Owner deleted file: '$DEL_FILE'"
-              fi
-            done
-          fi
+          NL = chr(10)
+          ignore = {'README.md', 'LICENSE', '.gitignore', 'index.html'}
+          official_authors = {'bytecompilier', 'gufau9089-tech'}
 
-      - name: Validate added or modified package files
+          official_rows = []
+          community_rows = []
+          official_cards = []
+          community_cards = []
+
+          for name in sorted(os.listdir('.')):
+              if name.startswith('.') or name in ignore or not os.path.isfile(name):
+                  continue
+
+              data = {}
+              with open(name, 'r', encoding='utf-8', errors='ignore') as f:
+                  for line in f:
+                      if '=' in line:
+                          k, v = line.strip().split('=', 1)
+                          data[k.strip()] = v.strip()
+
+              if 'version' in data and 'author' in data:
+                  ver = data.get('version', '-')
+                  author = data.get('author', '-')
+                  desc = data.get('description', '')
+                  safe_desc = desc.replace('|', '\\|')
+                  is_official = author.lower() in official_authors
+
+                  if is_official:
+                      official_rows.append(f"| `{name}` | `{ver}` | 🛡️ Official | {safe_desc} |")
+                      badge = '<span class="badge official">Official</span>'
+                      cat = 'official'
+                  else:
+                      community_rows.append(f"| `{name}` | `{ver}` | [@{author}](https://github.com{author}) | {safe_desc} |")
+                      badge = f'<span class="badge">@{html.escape(author)}</span>'
+                      cat = 'community'
+
+                  card_html = f'''
+                  <div class="card" data-category="{cat}" data-search="{html.escape(name.lower())} {html.escape(desc.lower())} {html.escape(author.lower())}">
+                    <div class="card-head">
+                      <h3>{html.escape(name)} <span class="ver">v{html.escape(ver)}</span></h3>
+                      {badge}
+                    </div>
+                    <p>{html.escape(desc) or "No description provided."}</p>
+                    <code>bpm install {html.escape(name)}</code>
+                  </div>'''
+
+                  if is_official:
+                      official_cards.append(card_html)
+                  else:
+                      community_cards.append(card_html)
+
+          # Сначала идут официальные пакеты, затем пакеты сообщества
+          web_cards = official_cards + community_cards
+
+          def build_table(rows, empty_msg):
+              if not rows:
+                  return empty_msg
+              lines = [
+                  "| Package | Version | Author | Description |",
+                  "| :--- | :--- | :--- | :--- |"
+              ]
+              lines.extend(rows)
+              return NL.join(lines)
+
+          official_table = build_table(official_rows, "_No official packages yet._")
+          community_table = build_table(community_rows, "_No community packages published yet. Be the first to open a PR!_")
+
+          with open('README.md', 'r', encoding='utf-8') as f:
+              readme = f.read()
+
+          def replace_block(text, start_tag, end_tag, content):
+              if start_tag in text and end_tag in text:
+                  before = text.split(start_tag)[0]
+                  after = text.split(end_tag)[1]
+                  return before + start_tag + NL + content + NL + end_tag + after
+              return text
+
+          new_readme = replace_block(readme, "<!-- OFFICIAL_START -->", "<!-- OFFICIAL_END -->", official_table)
+          new_readme = replace_block(new_readme, "<!-- COMMUNITY_START -->", "<!-- COMMUNITY_END -->", community_table)
+
+          if new_readme != readme:
+              with open('README.md', 'w', encoding='utf-8') as f:
+                  f.write(new_readme)
+
+          html_page = f'''<!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>BPM Registry — ByteC Packages</title>
+            <style>
+              body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0d1117; color: #c9d1d9; max-width: 820px; margin: 40px auto; padding: 0 20px; }}
+              h1 {{ color: #58a6ff; margin-bottom: 6px; }}
+              .sub {{ color: #8b949e; margin-bottom: 20px; }}
+              input {{ width: 100%; padding: 12px; font-size: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #fff; margin-bottom: 16px; box-sizing: border-box; }}
+              input:focus {{ outline: none; border-color: #58a6ff; }}
+              .tabs {{ display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }}
+              .tab {{ background: #161b22; border: 1px solid #30363d; color: #8b949e; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.15s; }}
+              .tab:hover {{ border-color: #8b949e; color: #c9d1d9; }}
+              .tab.active {{ background: #1f6feb33; border-color: #58a6ff; color: #58a6ff; }}
+              .card {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 14px; }}
+              .card-head {{ display: flex; justify-content: space-between; align-items: center; }}
+              h3 {{ margin: 0; color: #f0f6fc; }}
+              .ver {{ font-size: 13px; color: #8b949e; font-weight: normal; margin-left: 6px; }}
+              .badge {{ font-size: 12px; padding: 3px 8px; border-radius: 12px; background: #21262d; color: #8b949e; }}
+              .badge.official {{ background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb66; }}
+              p {{ color: #8b949e; margin: 10px 0; }}
+              code {{ display: block; background: #0d1117; padding: 8px 12px; border-radius: 6px; color: #7ee787; font-size: 14px; }}
+              .empty {{ text-align: center; padding: 40px 20px; color: #8b949e; background: #161b22; border: 1px dashed #30363d; border-radius: 8px; display: none; }}
+            </style>
+          </head>
+          <body>
+            <h1>BPM Registry</h1>
+            <div class="sub">Official Package Registry for ByteC</div>
+            <input type="text" id="q" placeholder="Search packages by name, description, or author..." oninput="filter()">
+            <div class="tabs">
+              <button class="tab active" onclick="setCategory('all', this)">All ({len(web_cards)})</button>
+              <button class="tab" onclick="setCategory('official', this)">🛡️ Official ({len(official_cards)})</button>
+              <button class="tab" onclick="setCategory('community', this)">🌍 Community ({len(community_cards)})</button>
+            </div>
+            <div id="list">{"".join(web_cards)}</div>
+            <div id="empty" class="empty">No packages found matching your filter.</div>
+            <script>
+              let currentCat = 'all';
+
+              function setCategory(cat, btn) {{
+                currentCat = cat;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                btn.classList.add('active');
+                filter();
+              }}
+
+              function filter() {{
+                const q = document.getElementById('q').value.toLowerCase();
+                let visibleCount = 0;
+
+                document.querySelectorAll('.card').forEach(c => {{
+                  const matchText = c.dataset.search.includes(q);
+                  const matchCat = (currentCat === 'all') || (c.dataset.category === currentCat);
+                  if (matchText && matchCat) {{
+                    c.style.display = 'block';
+                    visibleCount++;
+                  }} else {{
+                    c.style.display = 'none';
+                  }}
+                }});
+
+                document.getElementById('empty').style.display = visibleCount === 0 ? 'block' : 'none';
+              }}
+            </script>
+          </body>
+          </html>'''
+
+          with open('index.html', 'w', encoding='utf-8') as f:
+              f.write(html_page)
+          EOF
+
+      - name: Commit updated files
         run: |
-          FILES=$(git diff --name-only --diff-filter=AM origin/main...HEAD)
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-
-          if [ -z "$FILES" ]; then
-            echo "No package files added or modified."
-            exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@://github.com"
+          git add README.md index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: update package catalog and web index"
+            git push
           fi
-
-          for FILE in $FILES; do
-            # Игнорируем служебные файлы репозитория
-            if [[ "$FILE" == "README.md" || "$FILE" == .github/* || "$FILE" == "LICENSE" ]]; then
-              continue
-            fi
-
-            echo "=== Checking package: '$FILE' ==="
-
-            # 1. Валидация имени файла (только буквы, цифры, '-' и '_')
-            if [[ ! "$FILE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-              echo "::error::Invalid package name '$FILE'. Only [a-zA-Z0-9_-] allowed."
-              exit 1
-            fi
-
-            # 2. Жесткий запрет на перезапись существующего пакета посторонними пользователями
-            if git ls-tree -r origin/main --name-only | grep -qx "$FILE"; then
-              if [[ "$PR_AUTHOR" != "bytecompilier" && "$PR_AUTHOR" != "gufau9089-tech" ]]; then
-                echo "::error::User '$PR_AUTHOR' is NOT allowed to modify existing package '$FILE'!"
-                exit 1
-              fi
-            fi
-
-            # 3. Проверка обязательных полей метафайла (url, version, author, description)
-            for KEY in url version author description; do
-              if ! grep -q "^${KEY}=" "$FILE"; then
-                echo "::error::Missing required field '${KEY}=' in '$FILE'."
-                exit 1
-              fi
-            done
-
-            URL=$(grep '^url=' "$FILE" | head -n 1 | cut -d'=' -f2- | tr -d '\r')
-            VERSION=$(grep '^version=' "$FILE" | head -n 1 | cut -d'=' -f2- | tr -d '\r')
-            AUTHOR=$(grep '^author=' "$FILE" | head -n 1 | cut -d'=' -f2- | tr -d '\r')
-            DESC=$(grep '^description=' "$FILE" | head -n 1 | cut -d'=' -f2- | tr -d '\r')
-
-            if [ -z "$URL" ] || [ -z "$VERSION" ] || [ -z "$AUTHOR" ] || [ -z "$DESC" ]; then
-              echo "::error::Fields url, version, author, and description cannot be empty in '$FILE'."
-              exit 1
-            fi
-
-            if [[ "$URL" =~ [[:space:]] ]]; then
-              echo "::error::URL in '$FILE' contains spaces. Please trim trailing spaces."
-              exit 1
-            fi
-
-            if [[ ! "$URL" =~ ^https://github\.com/ ]]; then
-              echo "::error::URL must start with https://github.com (Found: '$URL')"
-              exit 1
-            fi
-
-            # УСИЛЕНИЕ 1: Запрет изменяемых веток (/refs/heads/) — только теги или релизы
-            if [[ "$URL" == *"/refs/heads/"* ]] || [[ "$URL" != *"/refs/tags/"* && "$URL" != *"/releases/download/"* ]]; then
-              echo "::error::Mutable branch URLs are forbidden! Use an immutable GitHub Tag (/refs/tags/...) or Release (/releases/download/...) URL."
-              exit 1
-            fi
-
-            # УСИЛЕНИЕ 2: Проверка авторства и принадлежности репозитория
-            if [[ "$PR_AUTHOR" != "bytecompilier" && "$PR_AUTHOR" != "gufau9089-tech" ]]; then
-              if [[ "${AUTHOR,,}" != "${PR_AUTHOR,,}" ]]; then
-                echo "::error::Field 'author=$AUTHOR' must match your GitHub username '$PR_AUTHOR'!"
-                exit 1
-              fi
-            fi
-
-            if [[ "${URL,,}" != "https://github.com${AUTHOR,,}/"* ]]; then
-              echo "::error::Repository URL '$URL' must belong to author '$AUTHOR' (https://github.com$AUTHOR/...)."
-              exit 1
-            fi
-
-            # 4. Скачивание архива с лимитом 50 МБ и проверка HTTP 200
-            rm -rf /tmp/test_pkg.zip /tmp/raw_zip /tmp/unpacked
-            HTTP_CODE=$(curl -sL --max-filesize 52428800 -o /tmp/test_pkg.zip -w "%{http_code}" "$URL")
-            if [ "$HTTP_CODE" -ne 200 ]; then
-              echo "::error::Failed to download archive (HTTP $HTTP_CODE or file > 50MB): $URL"
-              exit 1
-            fi
-
-            # 5. Проверка ZIP-сигнатуры и структуры архива (имитация --strip-components=1 на Windows)
-            if ! file /tmp/test_pkg.zip | grep -qi "Zip archive"; then
-              echo "::error::Downloaded file is not a valid ZIP archive."
-              exit 1
-            fi
-
-            mkdir -p /tmp/raw_zip /tmp/unpacked
-            if ! unzip -q /tmp/test_pkg.zip -d /tmp/raw_zip; then
-              echo "::error::unzip failed to extract archive."
-              exit 1
-            fi
-
-            TOP_DIRS=$(find /tmp/raw_zip -mindepth 1 -maxdepth 1 -type d)
-            if [ -z "$TOP_DIRS" ]; then
-              echo "::error::Archive must contain a top-level folder (standard GitHub ZIP structure) so --strip-components=1 works on Windows."
-              exit 1
-            fi
-
-            cp -r /tmp/raw_zip/*/* /tmp/unpacked/ 2>/dev/null || true
-
-            if [ -z "$(ls -A /tmp/unpacked)" ]; then
-              echo "::error::Archive extracted empty directory! Make sure your library files are inside the repository folder."
-              exit 1
-            fi
-
-            # УСИЛЕНИЕ 3: Строгий белый список расширений внутри архива
-            BAD_FILES=$(find /tmp/unpacked -type f ! \( -iname "*.bytec" -o -iname "*.md" -o -iname "*.txt" -o -iname "LICENSE*" \))
-            if [ -n "$BAD_FILES" ]; then
-              echo "::error::Forbidden file types found! Only .bytec, .md, .txt, and LICENSE files are allowed. Found: $BAD_FILES"
-              exit 1
-            fi
-
-            rm -rf /tmp/test_pkg.zip /tmp/raw_zip /tmp/unpacked
-            echo "SUCCESS: '$FILE' (v$VERSION by $AUTHOR) passed all security checks!"
-          done
