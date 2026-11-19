@@ -5,6 +5,7 @@ Official package registry and web catalog for the **ByteC Package Manager (`bpm`
 🌐 **Web Catalog & Live Search:** [github.io](https://bytecompilier.github.io/BPM-registry)
 
 ---
+[![Validate Package PR](https://github.com/ByteCompilier/BPM-registry/actions/workflows/validate-pr.yml/badge.svg)](https://github.com/ByteCompilier/BPM-registry/actions/workflows/validate-pr.yml)
 
 ## 🛡️ Official Core Libraries
 
