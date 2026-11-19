@@ -33,13 +33,14 @@ jobs:
 
               data = {}
               with open(name, 'r', encoding='utf-8', errors='ignore') as f:
-                  for line in f:
+                  for raw_line in f:
+                      line = raw_line.replace('\r', '').strip()
                       if '=' in line:
-                          k, v = line.strip().split('=', 1)
+                          k, v = line.split('=', 1)
                           data[k.strip()] = v.strip()
 
-              url = data.get('url', '')
-              author = data.get('author', '')
+              url = data.get('url', '').strip()
+              author = data.get('author', '').strip()
 
               if not url or not author:
                   errors.append(f"- **`{name}`**: Missing `url` or `author` field.")
@@ -49,14 +50,17 @@ jobs:
                   errors.append(f"- **`{name}`**: Mutable branch URL detected (`{url}`).")
                   continue
 
-              if not url.lower().startswith(f"https://github.com{author.lower()}/"):
+              expected_prefix = f"https://github.com{author.lower()}/"
+              if not url.lower().startswith(expected_prefix):
                   errors.append(f"- **`{name}`**: URL `{url}` does not belong to author `{author}`.")
                   continue
 
               zip_path = '/tmp/audit_pkg.zip'
               extract_dir = '/tmp/audit_extract'
-              if os.path.exists(zip_path): os.remove(zip_path)
-              if os.path.exists(extract_dir): shutil.rmtree(extract_dir)
+              if os.path.exists(zip_path):
+                  os.remove(zip_path)
+              if os.path.exists(extract_dir):
+                  shutil.rmtree(extract_dir)
 
               try:
                   req = urllib.request.Request(url, headers={'User-Agent': 'BPM-Security-Patrol'})
@@ -94,7 +98,6 @@ jobs:
               report = "### 🚨 Security & Integrity Alert\n\nThe scheduled patrol detected issues in the following packages:\n\n" + "\n".join(errors)
               print(report)
 
-              # Проверяем, нет ли уже открытого Issue с таким заголовком, чтобы не спамить
               check = subprocess.run(
                   ["gh", "issue", "list", "--state", "open", "--search", "[SECURITY ALERT] Package Integrity Issue", "--json", "number"],
                   capture_output=True, text=True
