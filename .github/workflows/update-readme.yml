@@ -21,6 +21,7 @@ jobs:
           python3 - << 'EOF'
           import os
 
+          NL = chr(10)
           ignore = {'README.md', 'LICENSE', '.gitignore'}
           official_authors = {'bytecompilier', 'gufau9089-tech'}
 
@@ -56,8 +57,8 @@ jobs:
                   "| :--- | :--- | :--- | :--- |"
               ]
               lines.extend(rows)
-              return "\n".join(lines)
-              
+              return NL.join(lines)
+
           official_table = build_table(official_rows, "_No official packages yet._")
           community_table = build_table(community_rows, "_No community packages published yet. Be the first to open a PR!_")
 
@@ -66,9 +67,9 @@ jobs:
 
           def replace_block(text, start_tag, end_tag, content):
               if start_tag in text and end_tag in text:
-                  before = text.split(start_tag)[0]
-                  after = text.split(end_tag)[1]
-                  return f"{before}{start_tag}\n{content}\n{end_tag}{after}"
+                  before = text.split(start_tag)
+                  after = text.split(end_tag)
+                  return before + start_tag + NL + content + NL + end_tag + after
               return text
 
           new_readme = replace_block(readme, "<!-- OFFICIAL_START -->", "<!-- OFFICIAL_END -->", official_table)
