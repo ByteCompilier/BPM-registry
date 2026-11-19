@@ -67,7 +67,7 @@ jobs:
                   ver, author = data.get('version', '-'), data.get('author', '-')
                   desc, url = data.get('description', ''), data.get('url', '')
                   is_off = author.lower() in official
-                  r_url = url.split('/archive/') if '/archive/' in url else (url.split('/releases/') if '/releases/' in url else url)
+                  r_url = url.partition('/archive/')[0] if '/archive/' in url else (url.partition('/releases/')[0] if '/releases/' in url else url)
                   slug = r_url.replace(GH_BASE, '').strip('/') if r_url.startswith(GH_BASE) else ''
                   src = tag("a", f'class="src-link" href="{html.escape(r_url)}" target="_blank"', "Source ↗") if r_url.startswith('https://') else ""
 
@@ -96,8 +96,7 @@ jobs:
 
           for st, en, tb in [(f"{LT}!-- OFFICIAL_START --{GT}", f"{LT}!-- OFFICIAL_END --{GT}", mk_tbl(off_rows, "_No official packages._")), (f"{LT}!-- COMMUNITY_START --{GT}", f"{LT}!-- COMMUNITY_END --{GT}", mk_tbl(com_rows, "_No community packages yet._"))]:
               if st in rm and en in rm:
-                  rm = rm.split(st) + st + NL + tb + NL + en + rm.split(en)
-
+                rm = rm.split(st)[0] + st + NL + tb + NL + en + rm.split(en)[1]
           with open('README.md', 'w', encoding='utf-8') as f:
               f.write(rm)
 
