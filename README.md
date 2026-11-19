@@ -17,7 +17,7 @@ Official package registry and web catalog for the **ByteC Package Manager (`bpm`
 ## 🌍 Community Packages
 
 <!-- COMMUNITY_START -->
-_No community packages published yet. Be the first to open a PR!_
+_No community packages yet._
 <!-- COMMUNITY_END -->
 
 ---
