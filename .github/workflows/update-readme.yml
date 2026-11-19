@@ -49,7 +49,7 @@ jobs:
               except Exception:
                   return []
 
-          ignore = {'README.md', 'LICENSE', '.gitignore', 'index.html'}
+          ignore = {'README.md', 'LICENSE', '.gitignore', 'index.html', 'SECURITY.md', 'CONTRIBUTING.md', '.editorconfig'}
           official = {'bytecompilier', 'gufau9089-tech'}
           off_rows, com_rows, off_cards, com_cards = [], [], [], []
 
