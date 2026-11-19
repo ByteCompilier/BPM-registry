@@ -12,7 +12,7 @@ Official package registry and web catalog for the **ByteC Package Manager (`bpm`
 | Package | Version | Author | Description |
 | :--- | :--- | :--- | :--- |
 | `add` | `1.0.0` | 🛡️ Official |  |
-| `std` | `1.0.0` | 🛡️ Official |  |
+| `std` | `1.0.9` | 🛡️ Official | Test bytec library for BPM! |
 <!-- OFFICIAL_END -->
 
 ## 🌍 Community Packages
