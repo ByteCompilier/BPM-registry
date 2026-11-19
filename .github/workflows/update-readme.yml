@@ -27,7 +27,8 @@ jobs:
 
           official_rows = []
           community_rows = []
-          web_cards = []
+          official_cards = []
+          community_cards = []
 
           for name in sorted(os.listdir('.')):
               if name.startswith('.') or name in ignore or not os.path.isfile(name):
@@ -50,19 +51,29 @@ jobs:
                   if is_official:
                       official_rows.append(f"| `{name}` | `{ver}` | 🛡️ Official | {safe_desc} |")
                       badge = '<span class="badge official">Official</span>'
+                      cat = 'official'
                   else:
                       community_rows.append(f"| `{name}` | `{ver}` | [@{author}](https://github.com{author}) | {safe_desc} |")
                       badge = f'<span class="badge">@{html.escape(author)}</span>'
+                      cat = 'community'
 
-                  web_cards.append(f'''
-                  <div class="card" data-search="{html.escape(name.lower())} {html.escape(desc.lower())}">
+                  card_html = f'''
+                  <div class="card" data-category="{cat}" data-search="{html.escape(name.lower())} {html.escape(desc.lower())} {html.escape(author.lower())}">
                     <div class="card-head">
                       <h3>{html.escape(name)} <span class="ver">v{html.escape(ver)}</span></h3>
                       {badge}
                     </div>
                     <p>{html.escape(desc) or "No description provided."}</p>
                     <code>bpm install {html.escape(name)}</code>
-                  </div>''')
+                  </div>'''
+
+                  if is_official:
+                      official_cards.append(card_html)
+                  else:
+                      community_cards.append(card_html)
+
+          # Сначала идут официальные пакеты, затем пакеты сообщества
+          web_cards = official_cards + community_cards
 
           def build_table(rows, empty_msg):
               if not rows:
@@ -103,8 +114,13 @@ jobs:
             <style>
               body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0d1117; color: #c9d1d9; max-width: 820px; margin: 40px auto; padding: 0 20px; }}
               h1 {{ color: #58a6ff; margin-bottom: 6px; }}
-              .sub {{ color: #8b949e; margin-bottom: 24px; }}
-              input {{ width: 100%; padding: 12px; font-size: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #fff; margin-bottom: 24px; box-sizing: border-box; }}
+              .sub {{ color: #8b949e; margin-bottom: 20px; }}
+              input {{ width: 100%; padding: 12px; font-size: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #fff; margin-bottom: 16px; box-sizing: border-box; }}
+              input:focus {{ outline: none; border-color: #58a6ff; }}
+              .tabs {{ display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }}
+              .tab {{ background: #161b22; border: 1px solid #30363d; color: #8b949e; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.15s; }}
+              .tab:hover {{ border-color: #8b949e; color: #c9d1d9; }}
+              .tab.active {{ background: #1f6feb33; border-color: #58a6ff; color: #58a6ff; }}
               .card {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 14px; }}
               .card-head {{ display: flex; justify-content: space-between; align-items: center; }}
               h3 {{ margin: 0; color: #f0f6fc; }}
@@ -113,19 +129,46 @@ jobs:
               .badge.official {{ background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb66; }}
               p {{ color: #8b949e; margin: 10px 0; }}
               code {{ display: block; background: #0d1117; padding: 8px 12px; border-radius: 6px; color: #7ee787; font-size: 14px; }}
+              .empty {{ text-align: center; padding: 40px 20px; color: #8b949e; background: #161b22; border: 1px dashed #30363d; border-radius: 8px; display: none; }}
             </style>
           </head>
           <body>
             <h1>BPM Registry</h1>
             <div class="sub">Official Package Registry for ByteC</div>
-            <input type="text" id="q" placeholder="Search packages..." oninput="filter()">
+            <input type="text" id="q" placeholder="Search packages by name, description, or author..." oninput="filter()">
+            <div class="tabs">
+              <button class="tab active" onclick="setCategory('all', this)">All ({len(web_cards)})</button>
+              <button class="tab" onclick="setCategory('official', this)">🛡️ Official ({len(official_cards)})</button>
+              <button class="tab" onclick="setCategory('community', this)">🌍 Community ({len(community_cards)})</button>
+            </div>
             <div id="list">{"".join(web_cards)}</div>
+            <div id="empty" class="empty">No packages found matching your filter.</div>
             <script>
+              let currentCat = 'all';
+
+              function setCategory(cat, btn) {{
+                currentCat = cat;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                btn.classList.add('active');
+                filter();
+              }}
+
               function filter() {{
-                const v = document.getElementById('q').value.toLowerCase();
+                const q = document.getElementById('q').value.toLowerCase();
+                let visibleCount = 0;
+
                 document.querySelectorAll('.card').forEach(c => {{
-                  c.style.display = c.dataset.search.includes(v) ? 'block' : 'none';
+                  const matchText = c.dataset.search.includes(q);
+                  const matchCat = (currentCat === 'all') || (c.dataset.category === currentCat);
+                  if (matchText && matchCat) {{
+                    c.style.display = 'block';
+                    visibleCount++;
+                  }} else {{
+                    c.style.display = 'none';
+                  }}
                 }});
+
+                document.getElementById('empty').style.display = visibleCount === 0 ? 'block' : 'none';
               }}
             </script>
           </body>
