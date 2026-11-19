@@ -1,0 +1,21 @@
+name: Welcome First-Time Contributors
+
+on:
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-message: |
+            🎉 **Welcome to the BPM Registry!**
+
+            Thank you for submitting your first library to the **ByteC** ecosystem!
+            Our automated security bot is currently verifying your package metadata and archive. Once the check turns green (✅), a maintainer will review and merge your request.
