@@ -15,7 +15,7 @@ Before submitting a package to `BPM-registry`, make sure your library repository
 3. **Create an Immutable Tag or Release:**
    * Go to your library repository → **Releases → Create a new release**.
    * Create a version tag (e.g., `v1.0.0`) and publish the release.
-   * Your archive link will look like: `https://github.com<your-username>/<your-repo>/archive/refs/tags/v1.0.0.zip`.
+   * Your archive link will look like: `https://github.com/<your-username>/<your-repo>/archive/refs/tags/v1.0.0.zip`.
 
 ---
 
@@ -27,7 +27,7 @@ Before submitting a package to `BPM-registry`, make sure your library repository
 3. Add the four required fields in `key=value` format:
 
 ```ini
-url=https://github.comyour-username/your-repo/archive/refs/tags/v1.0.0.zip
+url=https://github.com/your-username/your-repo/archive/refs/tags/v1.0.0.zip
 version=1.0.0
 author=your-username
 description=Short and clear description of what your ByteC library does
@@ -39,7 +39,7 @@ description=Short and clear description of what your ByteC library does
 
 1. Submit a **Pull Request** to the `main` branch of `BPM-registry`.
 2. Wait ~20 seconds for the automated **`check-package`** bot to verify your metadata, download the archive, and inspect its contents.
-3. Once the check turns green (✅) and a maintainer approves your PR, your package will automatically appear in `README.md` and on the **[Web Catalog](https://github.io)**.
+3. Once the check turns green (✅) and a maintainer approves your PR, your package will automatically appear in `README.md` and on the **[Web Catalog](https://bytecompilier.github.io/BPM-registry/)**.
 
 ---
 
