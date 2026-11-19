@@ -1,0 +1,36 @@
+name: 💡 Request a New Library
+description: Suggest a new library to be created or added to the ByteC ecosystem
+title: "[Request]: "
+labels: ["enhancement"]
+body:
+  - type: input
+    id: lib-name
+    attributes:
+      label: Proposed Library Name
+      description: Only letters, numbers, '-' and '_'
+      placeholder: e.g. strings, http-client, raylib-wrapper
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Use Case / Category
+      options:
+        - Data structures & algorithms (JSON, Lists, Maps)
+        - Networking & Web (HTTP, Sockets)
+        - File system & OS utilities
+        - Graphics, Audio, or GameDev
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: features
+    attributes:
+      label: Desired Functions & API
+      description: Explain what this library should do and show an example of how you would use it in ByteC
+      placeholder: |
+        I would like functions for reading and parsing CSV files...
+    validations:
+      required: true
