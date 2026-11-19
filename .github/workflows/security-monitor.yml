@@ -50,7 +50,7 @@ jobs:
                   errors.append(f"- **`{name}`**: Mutable branch URL detected (`{url}`).")
                   continue
 
-              expected_prefix = f"https://github.com{author.lower()}/"
+              expected_prefix = f"https://github.com/{author.lower()}/"
               if not url.lower().startswith(expected_prefix):
                   errors.append(f"- **`{name}`**: URL `{url}` does not belong to author `{author}`.")
                   continue
