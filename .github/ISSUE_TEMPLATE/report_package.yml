@@ -1,0 +1,49 @@
+name: 🚨 Report a Broken or Malicious Package
+description: Report a dead download link, library bug, or security concern
+title: "[Report]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping keep the **BPM Registry** reliable and safe!
+
+  - type: input
+    id: package-name
+    attributes:
+      label: Package Name
+      description: Exact name of the package in the registry
+      placeholder: e.g. std, json-parser
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Category
+      options:
+        - Dead / 404 download URL
+        - Compilation error or bug in ByteC code
+        - Suspicious or malicious behavior
+        - Other issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Problem Description & Terminal Output
+      description: Describe what happened or paste the output from bpm.exe
+      placeholder: |
+        Example:
+        Running `bpm install my-pkg` fails with HTTP 404...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Verification
+      options:
+        - label: I checked that my internet connection and bpm.exe version are up to date.
+          required: true
