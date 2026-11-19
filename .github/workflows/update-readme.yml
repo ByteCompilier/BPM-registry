@@ -50,7 +50,7 @@ jobs:
                   desc, url = data.get('description', ''), data.get('url', '')
                   is_off = author.lower() in official
                   r_url = url.split('/archive/')[0] if '/archive/' in url else (url.split('/releases/')[0] if '/releases/' in url else url)
-                  slug = r_url.replace('https://github.com', '').strip('/') if r_url.startswith('https://github.com') else ''
+                  slug = r_url.replace('https://github.com/ByteCompilier/ByteC/', '').strip('/') if r_url.startswith('https://github.com/ByteCompilier/ByteC/') else ''
                   src = tag("a", f'class="src-link" href="{html.escape(r_url)}" target="_blank"', "Source ↗") if r_url.startswith('https://') else ""
 
                   if is_off:
