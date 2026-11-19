@@ -51,9 +51,13 @@ jobs:
           def build_table(rows, empty_msg):
               if not rows:
                   return empty_msg
-              header = "| Package | Version | Author | Description |\n| :--- | :--- | :--- | :--- |\n"
-              return header + "\n".join(rows)
-
+              lines = [
+                  "| Package | Version | Author | Description |",
+                  "| :--- | :--- | :--- | :--- |"
+              ]
+              lines.extend(rows)
+              return "\n".join(lines)
+              
           official_table = build_table(official_rows, "_No official packages yet._")
           community_table = build_table(community_rows, "_No community packages published yet. Be the first to open a PR!_")
 
