@@ -63,6 +63,8 @@ jobs:
           community_table = build_table(community_rows, "_No community packages published yet. Be the first to open a PR!_")
 
           with open('README.md', 'r', encoding='utf-8') as f:
+              readme = f.read()
+
           def replace_block(text, start_tag, end_tag, content):
               if start_tag in text and end_tag in text:
                   before = text.split(start_tag)[0]
