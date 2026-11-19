@@ -1,4 +1,4 @@
-url=https://github.com/ByteCompilier/bytec/archive/refs/tags/alpha9/STD.zip
+url=https://github.com/ByteCompilier/bytec/releases/download/alpha9/STD.zip
 version=1.0.9
 author=ByteCompilier
 description=Test bytec library for BPM!
