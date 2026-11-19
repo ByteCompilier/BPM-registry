@@ -1,0 +1,111 @@
+name: Package Security Patrol
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Проверка каждые 30 минут
+  workflow_dispatch:       # Возможность запустить проверку вручную кнопкой
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  audit-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan all registered packages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - << 'EOF'
+          import os, subprocess, urllib.request, urllib.error, zipfile, shutil
+
+          ignore = {'README.md', 'LICENSE', '.gitignore', 'index.html'}
+          allowed_ext = ('.bytec', '.md', '.txt')
+          errors = []
+
+          for name in sorted(os.listdir('.')):
+              if name.startswith('.') or name in ignore or not os.path.isfile(name):
+                  continue
+
+              data = {}
+              with open(name, 'r', encoding='utf-8', errors='ignore') as f:
+                  for line in f:
+                      if '=' in line:
+                          k, v = line.strip().split('=', 1)
+                          data[k.strip()] = v.strip()
+
+              url = data.get('url', '')
+              author = data.get('author', '')
+
+              if not url or not author:
+                  errors.append(f"- **`{name}`**: Missing `url` or `author` field.")
+                  continue
+
+              if '/refs/heads/' in url or ('/refs/tags/' not in url and '/releases/download/' not in url):
+                  errors.append(f"- **`{name}`**: Mutable branch URL detected (`{url}`).")
+                  continue
+
+              if not url.lower().startswith(f"https://github.com{author.lower()}/"):
+                  errors.append(f"- **`{name}`**: URL `{url}` does not belong to author `{author}`.")
+                  continue
+
+              zip_path = '/tmp/audit_pkg.zip'
+              extract_dir = '/tmp/audit_extract'
+              if os.path.exists(zip_path): os.remove(zip_path)
+              if os.path.exists(extract_dir): shutil.rmtree(extract_dir)
+
+              try:
+                  req = urllib.request.Request(url, headers={'User-Agent': 'BPM-Security-Patrol'})
+                  with urllib.request.urlopen(req, timeout=20) as resp, open(zip_path, 'wb') as out:
+                      if resp.status != 200:
+                          errors.append(f"- **`{name}`**: HTTP {resp.status} when downloading `{url}`.")
+                          continue
+                      out.write(resp.read())
+              except Exception as e:
+                  errors.append(f"- **`{name}`**: Download failed (`{e}`).")
+                  continue
+
+              if not zipfile.is_zipfile(zip_path):
+                  errors.append(f"- **`{name}`**: Downloaded file is not a valid ZIP archive.")
+                  continue
+
+              with zipfile.ZipFile(zip_path, 'r') as zf:
+                  zf.extractall(extract_dir)
+
+              bad_files = []
+              has_files = False
+              for root, _, files in os.walk(extract_dir):
+                  for fn in files:
+                      has_files = True
+                      lower_fn = fn.lower()
+                      if not (lower_fn.endswith(allowed_ext) or lower_fn.startswith('license')):
+                          bad_files.append(fn)
+
+              if not has_files:
+                  errors.append(f"- **`{name}`**: Archive extracted an empty directory.")
+              elif bad_files:
+                  errors.append(f"- **`{name}`**: Forbidden/suspicious files detected inside archive: `{', '.join(bad_files)}`.")
+
+          if errors:
+              report = "### 🚨 Security & Integrity Alert\n\nThe scheduled patrol detected issues in the following packages:\n\n" + "\n".join(errors)
+              print(report)
+
+              # Проверяем, нет ли уже открытого Issue с таким заголовком, чтобы не спамить
+              check = subprocess.run(
+                  ["gh", "issue", "list", "--state", "open", "--search", "[SECURITY ALERT] Package Integrity Issue", "--json", "number"],
+                  capture_output=True, text=True
+              )
+              if check.stdout.strip() == "[]":
+                  subprocess.run([
+                      "gh", "issue", "create",
+                      "--title", "[SECURITY ALERT] Package Integrity Issue",
+                      "--body", report
+                  ])
+              exit(1)
+          else:
+              print("All packages passed security and integrity audit!")
+          EOF
