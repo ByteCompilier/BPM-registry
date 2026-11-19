@@ -23,9 +23,7 @@ Official package registry and web catalog for the **ByteC Package Manager (`bpm`
 ## 🌍 Community Packages
 
 <!-- COMMUNITY_START -->
-| Package | Version | Author | Description |
-| :--- | :--- | :--- | :--- |
-| `CONTRIBUTING.md` | `1.0.0` | [@your-username](https://github.comyour-username) | Short and clear description of what your ByteC library does |
+_No community packages yet._
 <!-- COMMUNITY_END -->
 
 ---
