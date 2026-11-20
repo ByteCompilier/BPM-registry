@@ -18,12 +18,10 @@ jobs:
             CONTENT='{"schemaVersion": 1, "label": "Web Portal", "message": "online", "color": "brightgreen"}'
           else
             CONTENT='{"schemaVersion": 1, "label": "Web Portal", "message": "offline", "color": "red"}'
-          }
+          fi
 
-          # Записываем статус в Gist
-          # Замените GIST_ID на ID вашего гиста
           GIST_ID="ваш_gist_id"
-          TOKEN="${{ secrets.ADMIN_TOKEN }}" # или можете вставить сам токен, но лучше через Secrets
+          TOKEN="${{ secrets.ADMIN_TOKEN }}"
           
           payload=$(jq -n --arg content "$CONTENT" '{files: {"status.json": {content: $content}}}')
           
