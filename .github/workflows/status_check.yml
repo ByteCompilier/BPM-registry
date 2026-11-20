@@ -1,0 +1,38 @@
+name: Website Status Check
+
+on:
+  schedule:
+    # Запуск каждые 30 минут
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Позволяет запускать проверку вручную
+
+permissions:
+  contents: write # Нужно для сохранения status.json в репозиторий
+
+jobs:
+  check-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check website status
+        id: check
+        run: |
+          # ЗАМЕНИ ССЫЛКУ НИЖЕ НА АДРЕС ТВОЕГО САЙТА
+          URL="https://bytecompilier.github.io/BPM-registry"
+          
+          HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$URL" || echo "000")
+          
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 400 ]; then
+            echo '{"schemaVersion": 1, "label": "Web Portal", "message": "online", "color": "brightgreen"}' > status.json
+          else
+            echo '{"schemaVersion": 1, "label": "Web Portal", "message": "offline", "color": "red"}' > status.json
+          fi
+
+      - name: Commit and push status.json
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add status.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update site status" && git push)
