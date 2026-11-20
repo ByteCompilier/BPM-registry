@@ -2,37 +2,33 @@ name: Website Status Check
 
 on:
   schedule:
-    # Запуск каждые 30 минут
     - cron: '*/30 * * * *'
-  workflow_dispatch: # Позволяет запускать проверку вручную
-
-permissions:
-  contents: write # Нужно для сохранения status.json в репозиторий
+  workflow_dispatch:
 
 jobs:
   check-status:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Check website status
-        id: check
         run: |
-          # ЗАМЕНИ ССЫЛКУ НИЖЕ НА АДРЕС ТВОЕГО САЙТА
           URL="https://bytecompilier.github.io/BPM-registry"
-          
           HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$URL" || echo "000")
           
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 400 ]; then
-            echo '{"schemaVersion": 1, "label": "Web Portal", "message": "online", "color": "brightgreen"}' > status.json
+            CONTENT='{"schemaVersion": 1, "label": "Web Portal", "message": "online", "color": "brightgreen"}'
           else
-            echo '{"schemaVersion": 1, "label": "Web Portal", "message": "offline", "color": "red"}' > status.json
-          fi
+            CONTENT='{"schemaVersion": 1, "label": "Web Portal", "message": "offline", "color": "red"}'
+          }
 
-      - name: Commit and push status.json
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add status.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update site status" && git push)
+          # Записываем статус в Gist
+          # Замените GIST_ID на ID вашего гиста
+          GIST_ID="ваш_gist_id"
+          TOKEN="${{ secrets.ADMIN_TOKEN }}" # или можете вставить сам токен, но лучше через Secrets
+          
+          payload=$(jq -n --arg content "$CONTENT" '{files: {"status.json": {content: $content}}}')
+          
+          curl -X PATCH \
+            -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/gists/$GIST_ID \
+            -d "$payload"
